@@ -7,6 +7,7 @@
   "license": "Apache Version 2.0",
   "dependencies": {
     "socket.io": "~1.0",
-    "yargs": "~3.31"
+    "yargs": "~3.31",
+    "sprintf": "~0.1"
   }
 }

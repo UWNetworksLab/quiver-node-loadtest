@@ -1,6 +1,7 @@
 #!/ulg/bin/node
 var io = require("socket.io-client");
 var process = require("process");
+var util = require("util");
 var argv = require('yargs')
     .usage('Usage: $0 [-m measurements] [-c count] [-i interval] server_url')
     .default('measurements', 0)
@@ -10,6 +11,8 @@ var argv = require('yargs')
     .alias('i', 'interval')
     .demand(1)
     .argv;
+
+var sprintf = require("sprintf").sprintf;
 
 var socket1, socket2;
 var client1, client2;
@@ -49,7 +52,7 @@ if (argv.measurements > 0) {
     var start_time = [];
     // prints a given latency in something reasonable, milliseconds.
     function print_lat(lat) {
-        return (lat / 1000000.0) + "ms";
+        return sprintf("%8.3fms", (lat / 1000000.0));
     }
     function on_message(event) {
         // hrtime returns a [sec, nsec] pair.
