@@ -1,0 +1,12 @@
+{
+  "name": "quiver-node-loadtest",
+  "version": "0.0.0",
+  "description": "Loadtest and latency measurement client for quiver. ",
+  "repository": "https://github.com/uProxy/quiver-node-loadtest",
+  "author": "Molly Ling <mollyling@uproxy.org>",
+  "license": "Apache Version 2.0",
+  "dependencies": {
+    "socket.io": "~1.0",
+    "yargs": "~3.31"
+  }
+}
