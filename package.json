@@ -6,7 +6,8 @@
   "author": "Molly Ling <mollyling@uproxy.org>",
   "license": "Apache Version 2.0",
   "dependencies": {
-    "socket.io": "~1.0",
+    "process": "~0.11.2",
+    "socket.io-client": "~1.0",
     "yargs": "~3.31",
     "sprintf": "~0.1"
   }
