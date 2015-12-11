@@ -1,4 +1,3 @@
-#!/ulg/bin/node
 var io = require("socket.io-client");
 var process = require("process");
 var util = require("util");
