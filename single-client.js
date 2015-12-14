@@ -2,12 +2,13 @@ var io = require("socket.io-client");
 var process = require("process");
 var util = require("util");
 var argv = require('yargs')
-    .usage('Usage: $0 [-m measurements] [-c count] [-i interval] server_url')
+    .usage('Usage: $0 [-m measurements] [-p pairs] [-w wait_ms] server_url')
     .default('measurements', 0)
-    .default('count', 1)
+    .default('pairs', 1)
+    .default('wait', 0)
     .alias('m', 'measurements')
-    .alias('c', 'count')
-    .alias('i', 'interval')
+    .alias('p', 'pairs')
+    .alias('w', 'wait')
     .demand(1)
     .argv;
 
@@ -16,18 +17,30 @@ var sprintf = require("sprintf").sprintf;
 var socket1, socket2;
 var client1, client2;
 var host = argv._[0];
+var attempted_connect_count = 0;
 var connected_count = 0;
+var connect_interval_id = 0;
+var first_connect_time;
+
+function print_lat(lat) {
+    return sprintf("%8.3fms", (lat / 1000000.0));
+}
+
+function lat_diff_ns(end, start) {
+    return ((end[0] - start[0]) * 1000000000) + (end[1] - start[1]);
+}
 
 // On the last connected socket, run start_measurement().
 function configure_sock(sock) {
     sock.on('connect', function() {
         connected_count++;
-        if (connected_count == 2 * argv.count) {
+        if (connected_count == 2 * argv.pairs) {
+            process.stdout.write("Took " + print_lat(lat_diff_ns(process.hrtime(), first_connect_time)) + " to connect all ");
             start_measurement();
         }
     });
     sock.on('connect_error', function(error) {
-        console.log("Connection failed:" + JSON.stringify(error));
+        console.log("Connection failed:" + JSON.stringify(error) + ", " + error);
     });
     sock.on('reconnect_failed', function(error) {
         console.log("Reconnection failed:" + JSON.stringify(error));
@@ -40,6 +53,25 @@ var connectOptions = {
     'forceNew': true  // Required for login-after-logout to work
 };
 
+
+function connect_pair() {
+    if (attempted_connect_count >= argv.pairs) {
+        clearInterval(connect_interval_id);
+        return;
+    } else {
+        socket1 = configure_sock(io.connect(host, connectOptions));
+        socket2 = configure_sock(io.connect(host, connectOptions));
+
+        client1 = "X_" + attempted_connect_count;
+        client2 = "Y_" + attempted_connect_count;
+
+        socket1.emit('join', client1);
+        socket2.emit('join', client2);
+        attempted_connect_count++;
+    }
+}
+
+/*
 for (var i = 0; i < argv.count; i++) {
     socket1 = configure_sock(io.connect(host, connectOptions));
     socket2 = configure_sock(io.connect(host, connectOptions));
@@ -49,21 +81,21 @@ for (var i = 0; i < argv.count; i++) {
 
     socket1.emit('join', client1);
     socket2.emit('join', client2);
-}
+}*/
+
+first_connect_time = process.hrtime();
+connect_interval_id = setInterval(connect_pair, argv.wait);
 
 var latencies = [];
 function start_measurement() {
     if (argv.measurements > 0) {
-        process.stdout.write(argv.count + " pairs: ");
+        process.stdout.write(argv.pairs + " pairs (" + (2*argv.pairs) + " clients) w/" + argv.wait + "ms wait: ");
         var start_time = [];
         // prints a given latency in something reasonable, milliseconds.
-        function print_lat(lat) {
-            return sprintf("%8.3fms", (lat / 1000000.0));
-        }
         function on_message(event) {
             // hrtime returns a [sec, nsec] pair.
             var end_time = process.hrtime();
-            var latency_ns = ((end_time[0] - start_time[0]) * 1000000000) + (end_time[1] - start_time[1]);
+            var latency_ns = lat_diff_ns(end_time, start_time);
             latencies.push(latency_ns);
             if (latencies.length < argv.measurements) {
                 socket1.emit('emit', { 'rooms':[client2], 'msg':'Foo' });
